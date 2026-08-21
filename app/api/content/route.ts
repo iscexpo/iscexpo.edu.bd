@@ -1,0 +1,74 @@
+import { NextRequest } from 'next/server'
+import {
+  unauthorized,
+  ok,
+  serverError,
+  validationError,
+} from '@/lib/api/response'
+import { getSession, requireAdmin } from '@/lib/core/permissions'
+import { getSystemSettings, saveSystemSettings } from '@/lib/cms/settings'
+import { settingsSchema } from '@/lib/core/validations'
+import { mergeCmsContent } from '@/lib/cms'
+
+const SENSITIVE_KEYS = [
+  'paymentGatewayApiKey',
+  'paymentGatewaySecret',
+  'paymentGatewayWebhookSecret',
+  'smsApiKey',
+  'smsPassword',
+  'smsEmail',
+]
+
+function sanitizeSettings(
+  settings: Record<string, unknown>,
+): Record<string, unknown> {
+  const safe: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(settings)) {
+    if (SENSITIVE_KEYS.includes(key)) {
+      safe[key] = ''
+    } else {
+      safe[key] = value
+    }
+  }
+  return safe
+}
+
+export async function GET() {
+  try {
+    const settings = await getSystemSettings()
+    const safe = sanitizeSettings(
+      settings as unknown as Record<string, unknown>,
+    )
+    return ok({ cmsContent: safe.cmsContent })
+  } catch {
+    return serverError('Failed to load content')
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getSession()
+    const authz = await requireAdmin()
+    if (!authz.ok) return authz.response
+    if (!session) return unauthorized()
+
+    const body = await request.json()
+    const parsed = settingsSchema.safeParse(body)
+    if (!parsed.success) {
+      return validationError(
+        'Invalid input',
+        parsed.error.flatten().fieldErrors,
+      )
+    }
+
+    const settings = await getSystemSettings()
+    return ok(
+      await saveSystemSettings({
+        ...settings,
+        cmsContent: mergeCmsContent(parsed.data.cmsContent || undefined),
+      }),
+    )
+  } catch {
+    return serverError('Failed to update content')
+  }
+}
