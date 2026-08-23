@@ -75,7 +75,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "16.2.6",
     "eslint-plugin-storybook": "^10.5.10",
-    "jsdom": "^22.1.0",
+    "jsdom": "^30.0.1",
     "postcss": "^8.5",
     "prettier": "^3.9.5",
     "storybook": "^10.5.10",
