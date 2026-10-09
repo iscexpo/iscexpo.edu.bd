@@ -60,7 +60,7 @@ jobs:
       - name: Build Storybook
         run: pnpm storybook:build
       - name: Upload Storybook artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: storybook-static
           path: storybook-static/
